@@ -1,0 +1,14 @@
+{
+  "name": "resu-audio-engine",
+  "version": "1.80.0",
+  "description": "ReSu_ Master Audio Engine — Professional AI Audio Cloaking, C2PA Stripping, Acoustic Mastering",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.0",
+    "multer": "^1.4.5-lts.1"
+  }
+}

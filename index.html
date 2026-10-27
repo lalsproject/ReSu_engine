@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="ReSu_ Master Audio Engine — Professional AI Audio Cloaking, C2PA Stripping, Acoustic Mastering, and Stealth Processing Suite">
+  <title>ReSu_ Master Audio Engine</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Animated background -->
+  <div class="bg-grid"></div>
+  <div class="bg-orb bg-orb-1"></div>
+  <div class="bg-orb bg-orb-2"></div>
+  <div class="bg-orb bg-orb-3"></div>
+
+  <!-- Header -->
+  <header id="app-header">
+    <div class="header-inner">
+      <div class="logo-group">
+        <div class="logo-icon">
+          <svg viewBox="0 0 40 40" fill="none"><circle cx="20" cy="20" r="18" stroke="url(#lg1)" stroke-width="2.5"/><path d="M14 26V14l14 6-14 6z" fill="url(#lg1)"/><defs><linearGradient id="lg1" x1="0" y1="0" x2="40" y2="40"><stop stop-color="#a78bfa"/><stop offset="1" stop-color="#06b6d4"/></linearGradient></defs></svg>
+        </div>
+        <div>
+          <h1 class="logo-text">ReSu<span class="accent">_</span></h1>
+          <p class="logo-sub">Master Audio Engine</p>
+        </div>
+      </div>
+      <nav class="header-nav" id="main-nav">
+        <button class="nav-btn active" data-tab="cloaker">
+          <span class="nav-icon">🛡️</span> Acoustic Cloaker
+        </button>
+        <button class="nav-btn" data-tab="c2pa">
+          <span class="nav-icon">🧹</span> C2PA Stripper
+        </button>
+        <button class="nav-btn" data-tab="cosu">
+          <span class="nav-icon">🎵</span> CoSu Processor
+        </button>
+        <button class="nav-btn" data-tab="custom-lab">
+          <span class="nav-icon">🔧</span> Custom Lab
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <main id="app-main">
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- TAB 1: ACOUSTIC CLOAKER                           -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <section class="tab-panel active" id="panel-cloaker">
+      <div class="panel-header">
+        <div class="panel-title-row">
+          <h2>Acoustic Cloaker &amp; Studio Mastering</h2>
+          <span class="badge badge-shield">AI-Shield Engine</span>
+        </div>
+        <p class="panel-desc">Full multi-format sanitization, acoustic cloaking, and studio remastering pipeline. Bypass AI fingerprint detection while maintaining commercial-grade audio quality.</p>
+      </div>
+
+      <!-- File Upload -->
+      <div class="upload-zone" id="cloaker-upload">
+        <div class="upload-inner">
+          <div class="upload-icon">
+            <svg viewBox="0 0 48 48" fill="none"><path d="M24 4v28M14 22l10-10 10 10" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M40 32v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-8" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
+          </div>
+          <h3>Drop your audio file here</h3>
+          <p>Supports MP3, WAV, FLAC, M4A • Max 500MB</p>
+          <input type="file" id="cloaker-file" accept=".mp3,.wav,.flac,.m4a,.ogg,.aac" hidden>
+          <button class="btn btn-primary" onclick="document.getElementById('cloaker-file').click()">
+            Browse Files
+          </button>
+        </div>
+      </div>
+
+      <!-- File Info Card (hidden until file loaded) -->
+      <div class="file-info-card hidden" id="cloaker-file-info">
+        <div class="file-info-left">
+          <div class="file-thumb" id="cloaker-thumb">🎧</div>
+          <div class="file-details">
+            <h4 id="cloaker-filename">—</h4>
+            <div class="file-meta">
+              <span id="cloaker-format" class="meta-chip">—</span>
+              <span id="cloaker-size" class="meta-chip">—</span>
+              <span id="cloaker-duration" class="meta-chip">—</span>
+            </div>
+          </div>
+        </div>
+        <button class="btn btn-ghost" onclick="resetUpload('cloaker')">✕ Remove</button>
+      </div>
+
+      <!-- Preset Selector -->
+      <div class="section-block">
+        <h3 class="section-title">
+          <span class="section-icon">⚡</span> Mastering Preset
+        </h3>
+        <div class="preset-grid" id="preset-grid">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+
+      <!-- Output Format -->
+      <div class="section-block">
+        <h3 class="section-title">
+          <span class="section-icon">💿</span> Output Format
+        </h3>
+        <div class="format-grid" id="format-grid">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+
+      <!-- Metadata -->
+      <div class="section-block">
+        <h3 class="section-title">
+          <span class="section-icon">📝</span> Metadata Tags
+        </h3>
+        <div class="metadata-form">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="meta-title">Title</label>
+              <input type="text" id="meta-title" placeholder="Song Title">
+            </div>
+            <div class="form-group">
+              <label for="meta-artist">Artist</label>
+              <input type="text" id="meta-artist" placeholder="Artist Name">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="meta-album">Album</label>
+              <input type="text" id="meta-album" placeholder="Album Name">
+            </div>
+            <div class="form-group">
+              <label for="meta-year">Year</label>
+              <input type="text" id="meta-year" placeholder="2026">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group full-width">
+              <label for="meta-copyright">Copyright</label>
+              <input type="text" id="meta-copyright" placeholder="© 2026 Your Name">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="meta-cover">Cover Art</label>
+              <div class="cover-upload-btn">
+                <input type="file" id="meta-cover" accept="image/jpeg,image/png" hidden>
+                <button class="btn btn-outline" onclick="document.getElementById('meta-cover').click()">
+                  🖼️ Upload Cover Art
+                </button>
+                <span id="cover-filename" class="cover-label">No cover selected</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Process Button -->
+      <div class="action-bar">
+        <button class="btn btn-process" id="btn-process-cloaker" disabled>
+          <span class="btn-icon">🚀</span>
+          <span class="btn-label">Process &amp; Master Audio</span>
+        </button>
+      </div>
+
+      <!-- Progress -->
+      <div class="progress-section hidden" id="cloaker-progress">
+        <div class="progress-header">
+          <span id="cloaker-progress-label">Processing...</span>
+          <span id="cloaker-progress-pct">0%</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill" id="cloaker-progress-fill"></div>
+        </div>
+        <div class="progress-stages" id="cloaker-stages">
+          <div class="stage" data-stage="strip">
+            <div class="stage-dot"></div>
+            <span>C2PA Strip</span>
+          </div>
+          <div class="stage" data-stage="cloak">
+            <div class="stage-dot"></div>
+            <span>Acoustic Cloak</span>
+          </div>
+          <div class="stage" data-stage="master">
+            <div class="stage-dot"></div>
+            <span>Studio Master</span>
+          </div>
+          <div class="stage" data-stage="finalize">
+            <div class="stage-dot"></div>
+            <span>Finalize</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Result Card -->
+      <div class="result-card hidden" id="cloaker-result">
+        <div class="result-header">
+          <div class="result-badge">✅ 100% COMMERCIAL READY</div>
+        </div>
+        <div class="result-stats">
+          <div class="stat-item">
+            <span class="stat-label">Preset</span>
+            <span class="stat-value" id="result-preset">—</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Format</span>
+            <span class="stat-value" id="result-format">—</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">C2PA Removed</span>
+            <span class="stat-value" id="result-c2pa">—</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Bytes Stripped</span>
+            <span class="stat-value" id="result-bytes">—</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Output Size</span>
+            <span class="stat-value" id="result-size">—</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Duration</span>
+            <span class="stat-value" id="result-duration">—</span>
+          </div>
+        </div>
+        <div class="result-actions">
+          <button class="btn btn-primary" id="btn-download-result">
+            ⬇️ Download Processed Audio
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- TAB 2: C2PA STRIPPER                              -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <section class="tab-panel" id="panel-c2pa">
+      <div class="panel-header">
+        <div class="panel-title-row">
+          <h2>C2PA &amp; Provenance Stripper</h2>
+          <span class="badge badge-danger">Binary Level</span>
+        </div>
+        <p class="panel-desc">Deep binary-level removal of C2PA manifests, Suno tracking URLs (WOAS), AI comments (COMM), custom descriptors (TXXX), encoder fingerprints (TSSE), and private DRM frames (PRIV) from MP3 ID3v2 tags.</p>
+      </div>
+
+      <!-- Upload -->
+      <div class="upload-zone" id="c2pa-upload">
+        <div class="upload-inner">
+          <div class="upload-icon">
+            <svg viewBox="0 0 48 48" fill="none"><rect x="8" y="6" width="32" height="36" rx="4" stroke="currentColor" stroke-width="2.5"/><path d="M16 18h16M16 24h12M16 30h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          </div>
+          <h3>Drop MP3 file to strip metadata</h3>
+          <p>MP3 files only • ID3v2.3 / ID3v2.4 supported</p>
+          <input type="file" id="c2pa-file" accept=".mp3" hidden>
+          <button class="btn btn-primary" onclick="document.getElementById('c2pa-file').click()">
+            Browse MP3 Files
+          </button>
+        </div>
+      </div>
+
+      <div class="file-info-card hidden" id="c2pa-file-info">
+        <div class="file-info-left">
+          <div class="file-thumb">📄</div>
+          <div class="file-details">
+            <h4 id="c2pa-filename">—</h4>
+            <div class="file-meta">
+              <span id="c2pa-size" class="meta-chip">—</span>
+            </div>
+          </div>
+        </div>
+        <button class="btn btn-ghost" onclick="resetUpload('c2pa')">✕ Remove</button>
+      </div>
+
+      <!-- Frame Inspector -->
+      <div class="section-block">
+        <h3 class="section-title">
+          <span class="section-icon">🔍</span> ID3 Frame Inspector
+        </h3>
+        <p class="section-desc">The following ID3 frames will be analyzed and dangerous frames will be flagged for removal.</p>
+        <div class="frame-inspector" id="c2pa-inspector">
+          <div class="inspector-placeholder">
+            <span>Upload an MP3 file to inspect its ID3 frames</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Target frames reference -->
+      <div class="section-block">
+        <h3 class="section-title">
+          <span class="section-icon">🎯</span> Targeted Frames
+        </h3>
+        <div class="target-frames-grid">
+          <div class="target-frame">
+            <div class="frame-tag danger">GEOB</div>
+            <span>C2PA Manifest Store</span>
+          </div>
+          <div class="target-frame">
+            <div class="frame-tag danger">WOAS</div>
+            <span>Suno Source URL</span>
+          </div>
+          <div class="target-frame">
+            <div class="frame-tag danger">TXXX</div>
+            <span>Suno Custom Tags</span>
+          </div>
+          <div class="target-frame">
+            <div class="frame-tag danger">COMM</div>
+            <span>AI Comment Tags</span>
+          </div>
+          <div class="target-frame">
+            <div class="frame-tag warning">TSSE</div>
+            <span>Encoder Signature</span>
+          </div>
+          <div class="target-frame">
+            <div class="frame-tag warning">PRIV</div>
+            <span>Private DRM Frame</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="action-bar">
+        <button class="btn btn-process" id="btn-process-c2pa" disabled>
+          <span class="btn-icon">🧹</span>
+          <span class="btn-label">Strip All Dangerous Frames</span>
+        </button>
+      </div>
+
+      <!-- C2PA Result -->
+      <div class="result-card hidden" id="c2pa-result">
+        <div class="result-header">
+          <div class="result-badge success">✅ Metadata Sanitized</div>
+        </div>
+        <div class="result-stats" id="c2pa-result-stats">
+          <!-- Populated by JS -->
+        </div>
+        <div class="result-actions">
+          <button class="btn btn-primary" id="btn-download-c2pa">
+            ⬇️ Download Clean MP3
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- TAB 3: COSU PROCESSOR                             -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <section class="tab-panel" id="panel-cosu">
+      <div class="panel-header">
+        <div class="panel-title-row">
+          <h2>CoSu Processor</h2>
+          <span class="badge badge-info">Side-Harmonic Cloak</span>
+        </div>
+        <p class="panel-desc">Side-Harmonic Stealth Cloak engine for cover songs. L-R phase inversion, highpass 250Hz, pitch-shift -2 semitones, and Audible Magic fingerprint bypass. Supports Original, Slow Tempo, and Staccato Guide modes.</p>
+      </div>
+
+      <!-- Upload -->
+      <div class="upload-zone" id="cosu-upload">
+        <div class="upload-inner">
+          <div class="upload-icon">
+            <svg viewBox="0 0 48 48" fill="none"><circle cx="24" cy="24" r="18" stroke="currentColor" stroke-width="2.5"/><circle cx="24" cy="24" r="6" fill="currentColor" opacity="0.3"/><circle cx="24" cy="24" r="2" fill="currentColor"/></svg>
+          </div>
+          <h3>Drop audio for CoSu processing</h3>
+          <p>MP3, WAV, FLAC, M4A supported</p>
+          <input type="file" id="cosu-file" accept=".mp3,.wav,.flac,.m4a,.ogg,.aac" hidden>
+          <button class="btn btn-primary" onclick="document.getElementById('cosu-file').click()">
+            Browse Files
+          </button>
+        </div>
+      </div>
+
+      <div class="file-info-card hidden" id="cosu-file-info">
+        <div class="file-info-left">
+          <div class="file-thumb">🎵</div>
+          <div class="file-details">
+            <h4 id="cosu-filename">—</h4>
+            <div class="file-meta">
+              <span id="cosu-format" class="meta-chip">—</span>
+              <span id="cosu-size" class="meta-chip">—</span>
+            </div>
+          </div>
+        </div>
+        <button class="btn btn-ghost" onclick="resetUpload('cosu')">✕ Remove</button>
+      </div>
+
+      <!-- CoSu Preset Modes -->
+      <div class="section-block">
+        <h3 class="section-title">
+          <span class="section-icon">🎛️</span> Cloak Mode
+        </h3>
+        <div class="cosu-mode-grid" id="cosu-mode-grid">
+          <div class="cosu-mode-card active" data-mode="original">
+            <div class="mode-icon">🛡️</div>
+            <h4>Original Side-Harmoni</h4>
+            <p>100% center vocal &amp; bass cancellation via L-R phase inversion + Highpass 250Hz + Pitch -2 Semitones</p>
+            <div class="mode-specs">
+              <span class="spec">Phase: L-R Inversion</span>
+              <span class="spec">HP: 250Hz</span>
+              <span class="spec">Pitch: -2 Semi</span>
+            </div>
+          </div>
+          <div class="cosu-mode-card" data-mode="slow_tempo">
+            <div class="mode-icon">🌙</div>
+            <h4>Slow Tempo Shield</h4>
+            <p>In-Phase Stereo + Chopper 5.5Hz + Notch 1800Hz + Tempo +5% — Perfect for ballads</p>
+            <div class="mode-specs">
+              <span class="spec">Chopper: 5.5Hz</span>
+              <span class="spec">Notch: 1800Hz</span>
+              <span class="spec">Tempo: +5%</span>
+            </div>
+          </div>
+          <div class="cosu-mode-card" data-mode="staccato">
+            <div class="mode-icon">⚡</div>
+            <h4>Staccato Guide</h4>
+            <p>Pulse ON/OFF pattern — 22% ghost vocal for pitch tracking, 100% kill for fingerprint break</p>
+            <div class="mode-specs">
+              <span class="spec">ON: 1.4s (22%)</span>
+              <span class="spec">OFF: 1.6s (100%)</span>
+              <span class="spec">Ramp: 50ms</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Duration Settings -->
+      <div class="section-block">
+        <h3 class="section-title">
+          <span class="section-icon">⏱️</span> Export Settings
+        </h3>
+        <div class="cosu-settings">
+          <div class="setting-group">
+            <label>Mode</label>
+            <div class="toggle-group">
+              <button class="toggle-btn active" data-export="slice" id="cosu-export-slice">Slice (60s)</button>
+              <button class="toggle-btn" data-export="full" id="cosu-export-full">Full Song</button>
+            </div>
+          </div>
+          <div class="setting-group" id="cosu-slice-settings">
+            <div class="form-row">
+              <div class="form-group">
+                <label for="cosu-start">Start Time (seconds)</label>
+                <input type="number" id="cosu-start" value="0" min="0" step="0.1">
+              </div>
+              <div class="form-group">
+                <label for="cosu-duration">Duration (seconds)</label>
+                <input type="number" id="cosu-duration" value="60" min="1" max="300" step="0.1">
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="action-bar">
+        <button class="btn btn-process" id="btn-process-cosu" disabled>
+          <span class="btn-icon">🎵</span>
+          <span class="btn-label">Export Stealth Seed</span>
+        </button>
+      </div>
+
+      <!-- CoSu Result -->
+      <div class="result-card hidden" id="cosu-result">
+        <div class="result-header">
+          <div class="result-badge success">✅ Stealth Seed Generated</div>
+        </div>
+        <div class="result-stats" id="cosu-result-stats"></div>
+        <div class="result-actions">
+          <button class="btn btn-primary" id="btn-download-cosu">
+            ⬇️ Download Stealth Audio
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- TAB 4: CUSTOM STUDIO LAB                          -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <section class="tab-panel" id="panel-custom-lab">
+      <div class="panel-header">
+        <div class="panel-title-row">
+          <h2>Custom Studio Lab</h2>
+          <span class="badge badge-pro">Pro Manual Rack</span>
+        </div>
+        <p class="panel-desc">Fine-tune every DSP parameter with precision sliders. Customize EQ curves, pitch detune, analog saturation, stereo widening, phase decorrelation, and loudness targets for complete creative control.</p>
+      </div>
+
+      <!-- Upload -->
+      <div class="upload-zone" id="lab-upload">
+        <div class="upload-inner">
+          <div class="upload-icon">
+            <svg viewBox="0 0 48 48" fill="none"><rect x="6" y="10" width="36" height="28" rx="4" stroke="currentColor" stroke-width="2.5"/><line x1="14" y1="22" x2="14" y2="32" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><line x1="22" y1="16" x2="22" y2="32" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><line x1="30" y1="20" x2="30" y2="32" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><line x1="38" y1="18" x2="38" y2="32" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
+          </div>
+          <h3>Drop audio for Custom Lab processing</h3>
+          <p>MP3, WAV, FLAC, M4A supported</p>
+          <input type="file" id="lab-file" accept=".mp3,.wav,.flac,.m4a,.ogg,.aac" hidden>
+          <button class="btn btn-primary" onclick="document.getElementById('lab-file').click()">
+            Browse Files
+          </button>
+        </div>
+      </div>
+
+      <div class="file-info-card hidden" id="lab-file-info">
+        <div class="file-info-left">
+          <div class="file-thumb">🔧</div>
+          <div class="file-details">
+            <h4 id="lab-filename">—</h4>
+            <div class="file-meta">
+              <span id="lab-format" class="meta-chip">—</span>
+              <span id="lab-size" class="meta-chip">—</span>
+            </div>
+          </div>
+        </div>
+        <button class="btn btn-ghost" onclick="resetUpload('lab')">✕ Remove</button>
+      </div>
+
+      <!-- DSP Controls -->
+      <div class="section-block">
+        <h3 class="section-title">
+          <span class="section-icon">🎚️</span> EQ &amp; Tone Shaping
+        </h3>
+        <div class="dsp-rack">
+          <div class="dsp-knob-row">
+            <div class="dsp-slider-group">
+              <label>Sub-Bass Gain (60Hz)</label>
+              <div class="slider-container">
+                <input type="range" class="dsp-slider" id="lab-subbass" min="-6" max="8" step="0.1" value="3.2">
+                <span class="slider-value" id="lab-subbass-val">+3.2 dB</span>
+              </div>
+            </div>
+            <div class="dsp-slider-group">
+              <label>Mud Scoop (250Hz)</label>
+              <div class="slider-container">
+                <input type="range" class="dsp-slider" id="lab-mudscoop" min="-8" max="2" step="0.1" value="-2.2">
+                <span class="slider-value" id="lab-mudscoop-val">-2.2 dB</span>
+              </div>
+            </div>
+          </div>
+          <div class="dsp-knob-row">
+            <div class="dsp-slider-group">
+              <label>Anti-AI Notch (3.45k + 5.2kHz)</label>
+              <div class="slider-container">
+                <input type="range" class="dsp-slider" id="lab-antinotch" min="-6" max="0" step="0.1" value="-2.0">
+                <span class="slider-value" id="lab-antinotch-val">-2.0 dB</span>
+              </div>
+            </div>
+            <div class="dsp-slider-group">
+              <label>Air Sheen (15kHz Shelf)</label>
+              <div class="slider-container">
+                <input type="range" class="dsp-slider" id="lab-airsheen" min="-4" max="4" step="0.1" value="0.5">
+                <span class="slider-value" id="lab-airsheen-val">+0.5 dB</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-block">
+        <h3 class="section-title">
+          <span class="section-icon">🎛️</span> Pitch, Stereo &amp; Saturation
+        </h3>
+        <div class="dsp-rack">
+          <div class="dsp-knob-row">
+            <div class="dsp-slider-group">
+              <label>Pitch Detune (cents)</label>
+              <div class="slider-container">
+                <input type="range" class="dsp-slider" id="lab-pitch" min="-50" max="50" step="1" value="0">
+                <span class="slider-value" id="lab-pitch-val">0 ¢</span>
+              </div>
+            </div>
+            <div class="dsp-slider-group">
+              <label>Stereo Width</label>
+              <div class="slider-container">
+                <input type="range" class="dsp-slider" id="lab-stereo" min="0.8" max="1.3" step="0.01" value="1.05">
+                <span class="slider-value" id="lab-stereo-val">1.05x</span>
+              </div>
+            </div>
+          </div>
+          <div class="dsp-knob-row">
+            <div class="dsp-slider-group">
+              <label>Soft Clip Saturation</label>
+              <div class="slider-container">
+                <input type="range" class="dsp-slider" id="lab-softclip" min="0.9" max="1.5" step="0.01" value="1.10">
+                <span class="slider-value" id="lab-softclip-val">1.10x</span>
+              </div>
+            </div>
+            <div class="dsp-slider-group">
+              <label>Ultrasonic Cut (Hz)</label>
+              <div class="slider-container">
+                <input type="range" class="dsp-slider" id="lab-ultrasonic" min="14000" max="20000" step="100" value="17200">
+                <span class="slider-value" id="lab-ultrasonic-val">17.2 kHz</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-block">
+        <h3 class="section-title">
+          <span class="section-icon">📊</span> Loudness Target
+        </h3>
+        <div class="dsp-rack">
+          <div class="dsp-knob-row single">
+            <div class="dsp-slider-group wide">
+              <label>Target LUFS</label>
+              <div class="slider-container">
+                <input type="range" class="dsp-slider lufs-slider" id="lab-lufs" min="-24" max="-6" step="0.5" value="-9.5">
+                <span class="slider-value" id="lab-lufs-val">-9.5 LUFS</span>
+              </div>
+              <div class="lufs-markers">
+                <span>-24 LUFS<br><small>Cinema</small></span>
+                <span>-16 LUFS<br><small>Podcast</small></span>
+                <span>-14 LUFS<br><small>Spotify</small></span>
+                <span>-11 LUFS<br><small>Club</small></span>
+                <span>-9.5 LUFS<br><small>Loud</small></span>
+                <span>-6 LUFS<br><small>Max</small></span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- EQ Visualizer -->
+      <div class="section-block">
+        <h3 class="section-title">
+          <span class="section-icon">📈</span> EQ Response Curve
+        </h3>
+        <div class="eq-visualizer">
+          <canvas id="eq-canvas" width="800" height="200"></canvas>
+        </div>
+      </div>
+
+      <!-- Generated Filter Graph (code preview) -->
+      <div class="section-block">
+        <h3 class="section-title">
+          <span class="section-icon">💻</span> Generated FFmpeg Filter Graph
+        </h3>
+        <div class="code-preview">
+          <pre><code id="lab-filtergraph">// Adjust sliders above to generate the filter graph...</code></pre>
+          <button class="btn btn-ghost btn-copy" onclick="copyFilterGraph()">📋 Copy</button>
+        </div>
+      </div>
+
+      <div class="action-bar">
+        <button class="btn btn-process" id="btn-process-lab" disabled>
+          <span class="btn-icon">🔧</span>
+          <span class="btn-label">Process with Custom Settings</span>
+        </button>
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer id="app-footer">
+    <div class="footer-inner">
+      <div class="footer-left">
+        <span class="footer-brand">ReSu<span class="accent">_</span> Engine</span>
+        <span class="footer-version">v1.80.0</span>
+      </div>
+      <div class="footer-right">
+        <span class="footer-module">acoustic-cloaker.js</span>
+        <span class="footer-sep">•</span>
+        <span class="footer-module">c2pa-stripper.js</span>
+        <span class="footer-sep">•</span>
+        <span class="footer-module">cosu-processor.js</span>
+        <span class="footer-sep">•</span>
+        <span class="footer-module">ffmpeg-kit-bridge.js</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Toast container -->
+  <div id="toast-container"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
