@@ -669,7 +669,8 @@ body {
 }
 
 .form-group input[type="text"],
-.form-group input[type="number"] {
+.form-group input[type="number"],
+.form-group textarea {
   width: 100%;
   padding: 0.6rem 0.85rem;
   background: var(--bg-glass);
@@ -680,12 +681,20 @@ body {
   font-family: var(--font-sans);
   transition: all var(--transition-fast);
 }
-.form-group input:focus {
+.form-group textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+.form-group input:focus,
+.form-group textarea:focus {
   outline: none;
   border-color: var(--border-focus);
   box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.1);
 }
 .form-group input::placeholder {
+  color: var(--text-muted);
+}
+.form-group textarea::placeholder {
   color: var(--text-muted);
 }
 

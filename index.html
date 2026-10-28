@@ -9,6 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
+  <script src="text_helper.js"></script>
 </head>
 <body>
   <!-- Animated background -->
@@ -383,6 +384,48 @@
         </div>
         <button class="btn btn-ghost" onclick="resetUpload('cosu')">✕ Remove</button>
       </div>
+
+      <div class="section-block">
+        <h3 class="section-title">
+          <span class="section-icon">📝</span> CoSu Lirik Siluman
+        </h3>
+        <div class="form-row cosu-text-inputs">
+          <div class="form-group">
+            <label for="lirik-asli">Lirik Asli</label>
+            <textarea id="lirik-asli" onchange="updateLirikSiluman()" rows="5" placeholder="Enter text..."></textarea>
+          </div>
+          <div class="form-group">
+            <label for="lirik-siluman">Lirik Siluman</label>
+            <textarea id="lirik-siluman" readonly rows="5" placeholder="Enter text..."></textarea>
+          </div>
+         
+        </div>
+         <!-- button copy -->
+          <button class="btn btn-primary" style="width: 100%;" onclick="copyLirikSiluman()">
+            Copy Lirik Siluman
+          </button>
+      </div>
+
+      <script>
+        function updateLirikSiluman() {
+          const asliText = document.getElementById('lirik-asli').value;
+          const silumanText = StealthLyricsCloaker.cloakLyrics(asliText,'id');
+          document.getElementById('lirik-siluman').value = silumanText;
+        }
+        // copyLirikSiluman
+        function copyLirikSiluman() {
+          const silumanText = document.getElementById('lirik-siluman').value;
+          if (silumanText) {
+            navigator.clipboard.writeText(silumanText).then(() => {
+              alert('Lirik Siluman copied to clipboard!');
+            }).catch(err => {
+              console.error('Failed to copy: ', err);
+            });
+          } else {
+            alert('Lirik Siluman is empty!');
+          }
+        }
+      </script>
 
       <!-- CoSu Preset Modes -->
       <div class="section-block">
