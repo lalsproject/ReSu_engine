@@ -353,6 +353,7 @@ body {
   cursor: pointer;
   position: relative;
   overflow: hidden;
+  margin-bottom: 20px;
 }
 .upload-zone::before {
   content: '';
@@ -670,6 +671,7 @@ body {
 
 .form-group input[type="text"],
 .form-group input[type="number"],
+.form-group select,
 .form-group textarea {
   width: 100%;
   padding: 0.6rem 0.85rem;
@@ -686,10 +688,15 @@ body {
   resize: vertical;
 }
 .form-group input:focus,
+.form-group select:focus,
 .form-group textarea:focus {
   outline: none;
   border-color: var(--border-focus);
   box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.1);
+}
+.form-group select option {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
 }
 .form-group input::placeholder {
   color: var(--text-muted);
