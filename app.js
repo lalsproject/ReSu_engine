@@ -78,6 +78,7 @@ const state = {
 //  INITIALIZATION
 // ══════════════════════════════════════════
 document.addEventListener('DOMContentLoaded', () => {
+  initThemeToggle();
   initNavigation();
   initPresetGrid();
   initFormatGrid();
@@ -89,6 +90,44 @@ document.addEventListener('DOMContentLoaded', () => {
   updateFilterGraphPreview();
   drawEQCurve();
 });
+
+function initThemeToggle() {
+  const toggle = document.getElementById('theme-toggle');
+  if (!toggle) return;
+
+  let savedTheme = null;
+  try {
+    savedTheme = localStorage.getItem('resu-theme');
+  } catch (error) {
+    console.warn('Theme preference could not be loaded:', error);
+  }
+
+  const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  const applyTheme = (theme, persist = false) => {
+    document.documentElement.dataset.theme = theme;
+    const isDark = theme === 'dark';
+    toggle.querySelector('.theme-toggle-icon').textContent = isDark ? '☀' : '☾';
+    toggle.querySelector('.theme-toggle-label').textContent = isDark ? 'Light mode' : 'Dark mode';
+    toggle.setAttribute('aria-label', `Switch to ${isDark ? 'light' : 'dark'} mode`);
+    toggle.setAttribute('aria-pressed', String(isDark));
+
+    if (persist) {
+      try {
+        localStorage.setItem('resu-theme', theme);
+      } catch (error) {
+        console.warn('Theme preference could not be saved:', error);
+      }
+    }
+
+    drawEQCurve();
+  };
+
+  applyTheme(savedTheme === 'dark' || savedTheme === 'light' ? savedTheme : systemTheme);
+  toggle.addEventListener('click', () => {
+    const nextTheme = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+    applyTheme(nextTheme, true);
+  });
+}
 
 // ── Navigation ──
 function initNavigation() {
@@ -656,12 +695,18 @@ function drawEQCurve() {
 
   const params = getLabParams();
 
+  const themeStyles = getComputedStyle(document.documentElement);
+  const canvasBackground = themeStyles.getPropertyValue('--canvas-bg').trim();
+  const canvasGrid = themeStyles.getPropertyValue('--canvas-grid').trim();
+  const canvasLabel = themeStyles.getPropertyValue('--canvas-label').trim();
+  const canvasGridStrong = themeStyles.getPropertyValue('--canvas-grid-strong').trim();
+
   // Background
-  ctx.fillStyle = 'rgba(10, 10, 18, 0.6)';
+  ctx.fillStyle = canvasBackground;
   ctx.fillRect(0, 0, w, h);
 
   // Grid lines
-  ctx.strokeStyle = 'rgba(255, 255, 255, 0.04)';
+  ctx.strokeStyle = canvasGrid;
   ctx.lineWidth = 1;
 
   // Horizontal grid (dB levels)
@@ -677,7 +722,7 @@ function drawEQCurve() {
     ctx.stroke();
 
     // Label
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
+    ctx.fillStyle = canvasLabel;
     ctx.font = '10px "JetBrains Mono", monospace';
     ctx.textAlign = 'left';
     ctx.fillText(`${db > 0 ? '+' : ''}${db} dB`, 4, y - 3);
@@ -685,7 +730,7 @@ function drawEQCurve() {
 
   // Frequency labels
   const freqLabels = [20, 60, 250, 1000, 3450, 5200, 10000, 15000, 20000];
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.12)';
+  ctx.fillStyle = canvasLabel;
   ctx.font = '9px "JetBrains Mono", monospace';
   ctx.textAlign = 'center';
 
@@ -694,7 +739,7 @@ function drawEQCurve() {
     ctx.beginPath();
     ctx.moveTo(x, 0);
     ctx.lineTo(x, h);
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.03)';
+    ctx.strokeStyle = canvasGrid;
     ctx.stroke();
 
     const label = freq >= 1000 ? `${freq/1000}k` : `${freq}`;
@@ -702,7 +747,7 @@ function drawEQCurve() {
   });
 
   // 0dB center line
-  ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+  ctx.strokeStyle = canvasGridStrong;
   ctx.lineWidth = 1;
   ctx.setLineDash([4, 4]);
   ctx.beginPath();
@@ -1252,11 +1297,11 @@ function attachAudioPlayer(containerId, audioUrl) {
   }
 
   player.innerHTML = `
-    <div style="margin: 1rem 0; padding: 0.75rem; background: rgba(0,0,0,0.3); border-radius: 8px; border: 1px solid rgba(255,255,255,0.08);">
-      <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+    <div class="audio-preview">
+      <div class="audio-preview-title">
         <span>🎧 Direct Audio Preview</span>
       </div>
-      <audio controls style="width: 100%; height: 36px; border-radius: 4px;" src="${audioUrl}"></audio>
+      <audio controls src="${audioUrl}"></audio>
     </div>
   `;
 }
@@ -1344,4 +1389,3 @@ function showToast(type, message) {
     if (toast.parentNode) toast.parentNode.removeChild(toast);
   }, 4500);
 }
-

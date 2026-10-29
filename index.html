@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -30,20 +30,26 @@
           <p class="logo-sub">Master Audio Engine</p>
         </div>
       </div>
-      <nav class="header-nav" id="main-nav">
-        <button class="nav-btn active" data-tab="cloaker">
-          <span class="nav-icon">🛡️</span> Acoustic Cloaker
+      <div class="header-controls">
+        <nav class="header-nav" id="main-nav">
+          <button class="nav-btn active" data-tab="cloaker">
+            <span class="nav-icon">🛡️</span> Acoustic Cloaker
+          </button>
+          <button class="nav-btn" data-tab="c2pa">
+            <span class="nav-icon">🧹</span> C2PA Stripper
+          </button>
+          <button class="nav-btn" data-tab="cosu">
+            <span class="nav-icon">🎵</span> CoSu Processor
+          </button>
+          <button class="nav-btn" data-tab="custom-lab">
+            <span class="nav-icon">🔧</span> Custom Lab
+          </button>
+        </nav>
+        <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Switch to dark mode">
+          <span class="theme-toggle-icon" aria-hidden="true">☾</span>
+          <span class="theme-toggle-label">Dark mode</span>
         </button>
-        <button class="nav-btn" data-tab="c2pa">
-          <span class="nav-icon">🧹</span> C2PA Stripper
-        </button>
-        <button class="nav-btn" data-tab="cosu">
-          <span class="nav-icon">🎵</span> CoSu Processor
-        </button>
-        <button class="nav-btn" data-tab="custom-lab">
-          <span class="nav-icon">🔧</span> Custom Lab
-        </button>
-      </nav>
+      </div>
     </div>
   </header>
 
