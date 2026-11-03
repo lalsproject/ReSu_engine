@@ -4,7 +4,9 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends ffmpeg \
     && rm -rf /var/lib/apt/lists/* \
     && mkdir -p /app \
-    && chown node:node /app
+    && chown node:node /app \
+    && mkdir -p /tmp/resu_output \
+    && chown node:node /tmp/resu_output
 
 WORKDIR /app
 USER node
