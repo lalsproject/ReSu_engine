@@ -35,6 +35,25 @@ Buka [http://localhost:3000](http://localhost:3000) di browser. Port dapat diuba
 
 Untuk pengembangan, `npm run dev` menjalankan server yang sama. Pada Windows, `start.bat` juga dapat digunakan untuk membuka browser dan memulai server.
 
+## Menjalankan dengan Docker
+
+Pastikan Docker dan Docker Compose sudah terpasang, lalu jalankan dari direktori proyek:
+
+```bash
+docker compose up --build -d
+```
+
+Buka [http://localhost:3000](http://localhost:3000) di browser. Docker memasang FFmpeg dan ffprobe di dalam image, jadi keduanya tidak perlu dipasang di host. Jika port 3000 di host sudah digunakan, jalankan dengan port lain, misalnya `HOST_PORT=3001 docker compose up --build -d`, lalu buka [http://localhost:3001](http://localhost:3001).
+
+Perintah yang berguna:
+
+```bash
+docker compose logs -f       # Lihat log
+docker compose down          # Hentikan aplikasi
+```
+
+Hasil audio disimpan di volume Docker `resu_output` dan dapat diunduh melalui aplikasi. Server menghapus file yang lebih lama dari 30 menit secara berkala.
+
 ## Cara menggunakan
 
 1. Pilih tab **Acoustic Cloaker**, **C2PA Stripper**, **CoSu Processor**, atau **Custom Lab**.

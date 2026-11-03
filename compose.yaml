@@ -1,0 +1,11 @@
+services:
+  resu:
+    build: .
+    ports:
+      - "${HOST_PORT:-8899}:3000"
+    volumes:
+      - resu_output:/tmp/resu_output
+    restart: unless-stopped
+
+volumes:
+  resu_output:
