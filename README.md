@@ -57,6 +57,7 @@ Hasil audio disimpan di volume Docker `resu_output` dan dapat diunduh melalui ap
 Jika volume `resu_output` dibuat oleh versi image sebelumnya dan muncul error `Permission denied`, perbaiki kepemilikannya tanpa menghapus file yang sudah ada:
 
 ```bash
+docker compose build
 docker compose run --rm --user root --entrypoint chown resu -R node:node /tmp/resu_output
 docker compose up -d
 ```
