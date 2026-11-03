@@ -137,8 +137,12 @@ function initNavigation() {
       const tab = btn.dataset.tab;
       state.activeTab = tab;
 
-      navBtns.forEach(b => b.classList.remove('active'));
+      navBtns.forEach(b => {
+        b.classList.remove('active');
+        b.removeAttribute('aria-current');
+      });
       btn.classList.add('active');
+      btn.setAttribute('aria-current', 'page');
 
       document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
       const panelId = tab === 'custom-lab' ? 'panel-custom-lab' : `panel-${tab}`;
