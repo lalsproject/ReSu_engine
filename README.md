@@ -6,7 +6,7 @@ Aplikasi web berbasis Node.js untuk memproses file audio. ReSu_ menyediakan pres
 
 - **Acoustic Cloaker** — memproses audio menggunakan preset mastering dan mengekspor ke MP3, WAV, FLAC, atau M4A/AAC.
 - **C2PA Stripper** — memeriksa dan menghapus frame metadata tertentu dari file MP3.
-- **CoSu Processor** — membuat preview atau mengekspor bagian audio maupun audio penuh menggunakan preset pemrosesan.
+- **CoSu Processor** — memilih preset Acoustic Cloaker (atau melewatinya) sebelum profil CoSu, lalu mengekspor satu hasil (bagian audio atau audio penuh) dengan pengaturan speed 0,5×–2×.
 - **Custom Lab** — mengatur parameter pemrosesan khusus dan membuat preview.
 - **Metadata dan cover art** — mengatur tag judul, artis, album, tahun, copyright, dan cover art.
 
@@ -69,7 +69,7 @@ docker compose up -d
 3. Pilih preset atau format keluaran, dan isi metadata atau parameter yang tersedia.
 4. Jalankan pemrosesan, lalu unduh hasilnya dari tautan yang ditampilkan aplikasi.
 
-File unggahan dan hasil disimpan sementara di direktori sistem sementara. Server secara berkala menghapus file yang lebih lama dari 30 menit.
+File unggahan dan hasil disimpan sementara di direktori sistem sementara. File sementara yang terbengkalai (unggahan, hasil ekspor, dan preview) otomatis dihapus saat server mulai dan setiap 5 menit jika sudah berumur lebih dari 30 menit. Berkas hasil tetap tersedia untuk diunduh selama masa retensi tersebut.
 
 ## Endpoint API
 
@@ -82,8 +82,8 @@ Semua endpoint tersedia di server lokal pada `http://localhost:3000`.
 | `POST` | `/api/process` | Pemrosesan dan mastering audio; unggah `audio`, opsional `coverArt` |
 | `POST` | `/api/strip-c2pa` | Membersihkan metadata/frame tertentu; unggah `audio` |
 | `POST` | `/api/inspect-frames` | Memeriksa frame dan cover art tanpa mengubah file; unggah `audio` |
-| `POST` | `/api/cosu-export` | Ekspor audio CoSu; unggah `audio` |
-| `POST` | `/api/cosu-preview` | Membuat preview CoSu; unggah `audio` |
+| `POST` | `/api/cosu-export` | Ekspor CoSu, opsional preset Acoustic Cloaker lebih dulu (`acousticPreset` berisi ID preset atau string kosong untuk melewati); unggah `audio`, opsional `speed` (0,5–2×, default 1×, pitch tetap) |
+| `POST` | `/api/cosu-preview` | Membuat preview CoSu; unggah `audio`, opsional `speed` (0,5–2×, default 1×) |
 | `POST` | `/api/lab-preview` | Membuat preview dari parameter Custom Lab; unggah `audio` |
 | `POST` | `/api/metadata` | Membaca metadata audio; unggah `audio` |
 
@@ -98,6 +98,7 @@ Endpoint unggah menerima `multipart/form-data`. Berkas hasil dapat diunduh melal
 | `index.js` | Pipeline pemrosesan audio |
 | `acoustic-cloaker.js` | Preset mastering dan encoding melalui FFmpeg |
 | `c2pa-stripper.js` | Pemeriksaan dan pengelolaan metadata/frame MP3 |
+| `temp-file-cleanup.js` | Menghapus file sementara yang terbengkalai |
 | `cosu-processor.js` | Pemrosesan, preview, dan ekspor CoSu |
 | `ffmpeg-kit-bridge.js` | Jembatan eksekusi FFmpeg untuk lingkungan yang mendukung FFmpegKit |
 | `text_helper.js` | Helper teks untuk antarmuka |

@@ -2,6 +2,7 @@ const { spawn } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 const ffmpegKitBridge = require('./ffmpeg-kit-bridge');
+const { PRESETS: ACOUSTIC_PRESETS, buildFilterGraph: buildAcousticFilterGraph } = require('./acoustic-cloaker');
 
 class CoSuProcessor {
   constructor() {
@@ -191,6 +192,7 @@ class CoSuProcessor {
     const startTime = Math.max(0, parseFloat(options.startTime || 0));
     // Default durasi baru: 60.00s (Sesuai batas maksimal akun Free Suno)
     const duration = parseFloat(options.duration || 60.00);
+    const speed = ffmpegKitBridge.normalizeSpeed(options.speed);
     const outputPath = options.outputPath || this.generateDefaultOutputPath(inputPath, { isFull, duration });
 
     const outputDir = path.dirname(outputPath);
@@ -199,6 +201,10 @@ class CoSuProcessor {
     }
 
     const preset = options.preset || 'original';
+    const acousticPreset = options.acousticPreset || null;
+    const filterGraph = acousticPreset
+      ? this.getCombinedFilterGraph(acousticPreset, preset, speed)
+      : null;
 
     // ─────────────────────────────────────────────────────────────────
     // PLATFORM GUARD: Android ffmpeg-kit-android Execution Bridge
@@ -208,7 +214,9 @@ class CoSuProcessor {
         mode: options.mode,
         startTime,
         duration,
-        preset
+        preset,
+        speed,
+        filterGraph
       });
       await ffmpegKitBridge.executeOnAndroidFFmpegKit(command, onProgress);
       const stats = fs.existsSync(outputPath) ? fs.statSync(outputPath) : { size: 0 };
@@ -221,20 +229,24 @@ class CoSuProcessor {
         isFull,
         preset,
         presetName: preset === 'slow_tempo' ? 'Slow Tempo Shield' : (preset === 'staccato' ? 'Staccato Guide' : 'Original SideHarmoni'),
+        acousticPreset,
+        acousticPresetName: acousticPreset ? ACOUSTIC_PRESETS[acousticPreset].name : null,
+        speed,
         sizeBytes: stats.size
       };
     }
-
-    const dspFilter = this.getDspFilter(preset);
 
     const args = ['-y'];
     if (!isFull) {
       args.push('-ss', startTime.toFixed(3), '-t', duration.toFixed(3));
     }
+    args.push('-i', inputPath, '-vn');
+    if (filterGraph) {
+      args.push('-filter_complex', filterGraph, '-map', '[cosu_output]');
+    } else {
+      args.push('-af', this.getDspFilter(preset, speed));
+    }
     args.push(
-      '-i', inputPath,
-      '-vn',
-      '-af', dspFilter,
       '-map_metadata', '-1',
       '-c:a', 'libmp3lame',
       '-b:a', '320k',
@@ -270,6 +282,9 @@ class CoSuProcessor {
               isFull,
               preset,
               presetName: preset === 'slow_tempo' ? 'Slow Tempo Shield' : (preset === 'staccato' ? 'Staccato Guide' : 'Original SideHarmoni'),
+              acousticPreset,
+              acousticPresetName: acousticPreset ? ACOUSTIC_PRESETS[acousticPreset].name : null,
+              speed,
               sizeBytes: stats.size
             });
           }
@@ -292,19 +307,35 @@ class CoSuProcessor {
     });
   }
 
+  normalizeSpeed(speed) {
+    return ffmpegKitBridge.normalizeSpeed(speed);
+  }
+
+  getCombinedFilterGraph(acousticPreset, cosuPreset, speed) {
+    const acousticConfig = ACOUSTIC_PRESETS[acousticPreset];
+    if (!acousticConfig) {
+      throw new Error(`Preset Acoustic Cloaker tidak dikenal: ${acousticPreset}`);
+    }
+    const acousticFilter = buildAcousticFilterGraph(acousticConfig, 48000);
+    const cosuFilter = this.getDspFilter(cosuPreset, speed);
+    return `[0:a]${acousticFilter}[acoustic_cloaked];[acoustic_cloaked]${cosuFilter}[cosu_output]`;
+  }
+
   /**
    * Mengambil string filter DSP FFmpeg berdasarkan preset
    * Menggunakan formula native core FFmpeg (aresample pre-normalization + asetrate + aformat + atempo)
    * Menjamin presisi matematis 100% pada file 44.1k, 48k (Suno v3.5/v4), dan 96k tanpa drift tempo / pitch.
    */
-  getDspFilter(preset = 'original') {
+  getDspFilter(preset = 'original', speed = 1) {
+    const speedMultiplier = ffmpegKitBridge.normalizeSpeed(speed);
+    const speedFilter = speedMultiplier === 1 ? '' : `,atempo=${speedMultiplier}`;
     const pitchShiftCore = 'aformat=channel_layouts=stereo,aresample=44100,asetrate=44100*0.8908987,aresample=44100,atempo=1.122462';
 
     if (preset === 'slow_tempo' || preset === 'slow_ballad') {
       // 🌙 Slow Tempo / Ballad Shield (Formula Teruji 100% Lolos + Intonasi Pas & Manis)
       // Chopper 5.5Hz (d=0.88) + Notch 1800Hz (-11dB) + Transpose -2 Semitones + Tempo Shift +5% (atempo=1.178585)
       // In-Phase Stereo (c0=c0-c1|c1=c0-c1) anti-mono phase cancellation Suno AI
-      return 'pan=stereo|c0=c0-c1|c1=c0-c1,highpass=f=160,bass=g=3.0:f=180,equalizer=f=1800:t=q:w=1.2:g=-11,tremolo=f=5.5:d=0.88,aformat=channel_layouts=stereo,aresample=44100,asetrate=44100*0.8908987,aresample=44100,atempo=1.178585,volume=2.2';
+      return `pan=stereo|c0=c0-c1|c1=c0-c1,highpass=f=160,bass=g=3.0:f=180,equalizer=f=1800:t=q:w=1.2:g=-11,tremolo=f=5.5:d=0.88,aformat=channel_layouts=stereo,aresample=44100,asetrate=44100*0.8908987,aresample=44100,atempo=1.178585,volume=2.2${speedFilter}`;
     }
 
     if (preset === 'staccato') {
@@ -312,17 +343,18 @@ class CoSuProcessor {
       // Pulse ON (1.4s): cancel factor 0.78 (leaving ~22% faint ghost vocal for Suno pitch/melody tracker)
       // Pulse OFF (1.6s): cancel factor 1.0 (100% hard kill to break Audible Magic continuous fingerprint)
       // Highpass 250Hz + Pitch Shift -2 Semitones (0.8908987) + Volume 1.6x
-      return `aeval=exprs='val(0)-if(lt(mod(t\\,3.0)\\,1.35)\\,0.78\\,if(lt(mod(t\\,3.0)\\,1.40)\\,0.78+0.22*(mod(t\\,3.0)-1.35)/0.05\\,if(gt(mod(t\\,3.0)\\,2.95)\\,1.0-0.22*(mod(t\\,3.0)-2.95)/0.05\\,1.0)))*val(1)|val(1)-if(lt(mod(t\\,3.0)\\,1.35)\\,0.78\\,if(lt(mod(t\\,3.0)\\,1.40)\\,0.78+0.22*(mod(t\\,3.0)-1.35)/0.05\\,if(gt(mod(t\\,3.0)\\,2.95)\\,1.0-0.22*(mod(t\\,3.0)-2.95)/0.05\\,1.0)))*val(0)':c=stereo,highpass=f=250,${pitchShiftCore},volume=1.6`;
+      return `aeval=exprs='val(0)-if(lt(mod(t\\,3.0)\\,1.35)\\,0.78\\,if(lt(mod(t\\,3.0)\\,1.40)\\,0.78+0.22*(mod(t\\,3.0)-1.35)/0.05\\,if(gt(mod(t\\,3.0)\\,2.95)\\,1.0-0.22*(mod(t\\,3.0)-2.95)/0.05\\,1.0)))*val(1)|val(1)-if(lt(mod(t\\,3.0)\\,1.35)\\,0.78\\,if(lt(mod(t\\,3.0)\\,1.40)\\,0.78+0.22*(mod(t\\,3.0)-1.35)/0.05\\,if(gt(mod(t\\,3.0)\\,2.95)\\,1.0-0.22*(mod(t\\,3.0)-2.95)/0.05\\,1.0)))*val(0)':c=stereo,highpass=f=250,${pitchShiftCore},volume=1.6${speedFilter}`;
     }
     // 🛡️ Original Pure SideHarmoni (Default)
-    return `pan=stereo|c0=c0-c1|c1=c1-c0,highpass=f=250,${pitchShiftCore},volume=1.6`;
+    return `pan=stereo|c0=c0-c1|c1=c1-c0,highpass=f=250,${pitchShiftCore},volume=1.6${speedFilter}`;
   }
 
   /**
    * Merender cuplikan audio untuk preview live filter DSP (Original atau Staccato Guide)
    * Bebas memory leak & sandboxing: Mengembalikan data URI Base64 dan membersihkan file temp dari disk.
    */
-  async renderPreviewFilter(inputPath, startTime, duration = 15.00, preset = 'original') {
+  async renderPreviewFilter(inputPath, startTime, duration = 15.00, preset = 'original', speed = 1) {
+    const speedMultiplier = ffmpegKitBridge.normalizeSpeed(speed);
     const tempDir = path.join(require('os').tmpdir(), 'resu_cosu_previews');
     if (!fs.existsSync(tempDir)) {
       fs.mkdirSync(tempDir, { recursive: true });
@@ -354,13 +386,14 @@ class CoSuProcessor {
         startTime,
         duration,
         preset,
+        speed: speedMultiplier,
         bitrate: '256k'
       });
       await ffmpegKitBridge.executeOnAndroidFFmpegKit(command);
       return tempOutput;
     }
 
-    const dspFilter = this.getDspFilter(preset);
+    const dspFilter = this.getDspFilter(preset, speedMultiplier);
 
     const args = [
       '-y',

@@ -350,7 +350,7 @@
           <h2>CoSu Processor</h2>
           <span class="badge badge-info">Audio processing</span>
         </div>
-        <p class="panel-desc">Choose a stereo and timing profile, set an export range, and create a processed audio file.</p>
+        <p class="panel-desc">Optionally apply AI-Shield True Zero before your selected CoSu profile. Download the final result once.</p>
       </div>
 
       <!-- Upload -->
@@ -433,25 +433,60 @@
           const silumanText = StealthLyricsCloaker.cloakLyrics(asliText, bahasa);
           document.getElementById('lirik-siluman').value = silumanText;
         }
-        // copyLirikSiluman
-        function copyLirikSiluman() {
+        async function copyLirikSiluman() {
           const silumanText = document.getElementById('lirik-siluman').value;
-          if (silumanText) {
-            navigator.clipboard.writeText(silumanText).then(() => {
-              alert('Lirik Siluman copied to clipboard!');
-            }).catch(err => {
-              console.error('Failed to copy: ', err);
-            });
-          } else {
+          if (!silumanText.trim()) {
             alert('Lirik Siluman is empty!');
+            return;
+          }
+
+          try {
+            if (navigator.clipboard && window.isSecureContext) {
+              try {
+                await navigator.clipboard.writeText(silumanText);
+                alert('Lirik Siluman copied to clipboard!');
+                return;
+              } catch (error) {
+                console.warn('Clipboard API unavailable; using copy fallback:', error);
+              }
+            }
+
+            const copyField = document.createElement('textarea');
+            copyField.value = silumanText;
+            copyField.setAttribute('readonly', '');
+            copyField.style.position = 'fixed';
+            copyField.style.opacity = '0';
+            document.body.appendChild(copyField);
+            try {
+              copyField.select();
+              copyField.setSelectionRange(0, copyField.value.length);
+              if (!document.execCommand('copy')) {
+                throw new Error('Browser rejected the copy command');
+              }
+            } finally {
+              copyField.remove();
+            }
+            alert('Lirik Siluman copied to clipboard!');
+          } catch (error) {
+            console.error('Failed to copy Lirik Siluman:', error);
+            alert('Lirik Siluman gagal disalin. Silakan salin teks secara manual.');
           }
         }
       </script>
 
       <!-- CoSu Preset Modes -->
       <div class="section-block">
+        <h3 class="section-title">Acoustic Cloaker — First Stage</h3>
+        <p class="section-desc">Choose an Acoustic Cloaker preset to apply before CoSu, or skip this stage.</p>
+        <div class="form-group">
+          <label for="cosu-acoustic-preset">Acoustic Cloaker Preset</label>
+          <select id="cosu-acoustic-preset"></select>
+        </div>
+      </div>
+
+      <div class="section-block">
         <h3 class="section-title">
-          Cloak Mode
+          CoSu Processing — Second Stage
         </h3>
         <div class="cosu-mode-grid" id="cosu-mode-grid">
           <div class="cosu-mode-card active" data-mode="original">
@@ -509,6 +544,10 @@
               </div>
             </div>
           </div>
+          <div class="setting-group">
+            <label for="cosu-speed">Song Speed (0.5x–2x; pitch preserved)</label>
+            <input type="number" id="cosu-speed" value="1" min="0.5" max="2" step="0.05" required>
+          </div>
         </div>
       </div>
 
@@ -522,7 +561,7 @@
       <!-- CoSu Result -->
       <div class="result-card hidden" id="cosu-result">
         <div class="result-header">
-          <div class="result-badge success">✅ Stealth Seed Generated</div>
+          <div class="result-badge success">✅ Acoustic Cloak + CoSu Complete</div>
         </div>
         <div class="result-stats" id="cosu-result-stats"></div>
         <div class="result-actions">

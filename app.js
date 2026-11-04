@@ -70,7 +70,7 @@ const state = {
   activeTab: 'cloaker',
   cloaker: { file: null, preset: 'ai-shield-submithub-loudclean', format: 'mp3-320' },
   c2pa: { file: null },
-  cosu: { file: null, mode: 'original', exportMode: 'slice' },
+  cosu: { file: null, mode: 'original', exportMode: 'slice', acousticPreset: 'ai-shield-submithub-truezero' },
   lab: { file: null }
 };
 
@@ -529,6 +529,28 @@ function initCosuModes() {
       state.cosu.mode = card.dataset.mode;
     });
   });
+
+  const acousticPresetSelect = document.getElementById('cosu-acoustic-preset');
+  if (acousticPresetSelect) {
+    const skipOption = document.createElement('option');
+    skipOption.value = '';
+    skipOption.textContent = 'Skip Acoustic Cloaker';
+    acousticPresetSelect.appendChild(skipOption);
+
+    Object.entries(PRESETS)
+      .filter(([presetId]) => presetId !== 'custom-lab')
+      .forEach(([presetId, preset]) => {
+        const option = document.createElement('option');
+        option.value = presetId;
+        option.textContent = preset.name;
+        acousticPresetSelect.appendChild(option);
+      });
+
+    acousticPresetSelect.value = state.cosu.acousticPreset;
+    acousticPresetSelect.addEventListener('change', () => {
+      state.cosu.acousticPreset = acousticPresetSelect.value;
+    });
+  }
 }
 
 function initCosuExport() {
@@ -1155,6 +1177,12 @@ async function handleProcessCoSu() {
     return;
   }
 
+  const speed = Number(document.getElementById('cosu-speed').value);
+  if (!Number.isFinite(speed) || speed < 0.5 || speed > 2) {
+    showToast('error', 'Speed harus berada di antara 0.5x dan 2x.');
+    return;
+  }
+
   const btn = document.getElementById('btn-process-cosu');
   const resultCard = document.getElementById('cosu-result');
   btn.disabled = true;
@@ -1165,15 +1193,24 @@ async function handleProcessCoSu() {
     staccato: '⚡ Staccato Guide'
   };
 
-  showToast('info', `Menerapkan ${modeNames[state.cosu.mode]}...`);
+  const acousticPreset = state.cosu.acousticPreset;
+  const acousticPresetName = PRESETS[acousticPreset]?.name || '';
+  showToast(
+    'info',
+    acousticPreset
+      ? `Menerapkan ${acousticPresetName} lalu ${modeNames[state.cosu.mode]}...`
+      : `Melewati Acoustic Cloaker, menerapkan ${modeNames[state.cosu.mode]}...`
+  );
 
   try {
     const formData = new FormData();
     formData.append('audio', file);
     formData.append('mode', state.cosu.exportMode);
     formData.append('preset', state.cosu.mode);
+    formData.append('acousticPreset', acousticPreset);
     formData.append('startTime', document.getElementById('cosu-start')?.value || 0);
     formData.append('duration', document.getElementById('cosu-duration')?.value || 60);
+    formData.append('speed', speed);
 
     const response = await fetch(`${API_BASE}/api/cosu-export`, {
       method: 'POST',
@@ -1191,12 +1228,20 @@ async function handleProcessCoSu() {
 
     statsEl.innerHTML = `
       <div class="stat-item">
-        <span class="stat-label">Mode Preset</span>
+        <span class="stat-label">Acoustic Cloaker (First)</span>
+        <span class="stat-value">${data.acousticPresetName || 'Dilewati'}</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">CoSu Profile (Second)</span>
         <span class="stat-value">${modeNames[state.cosu.mode]}</span>
       </div>
       <div class="stat-item">
         <span class="stat-label">Durasi</span>
         <span class="stat-value">${durLabel}</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">Speed</span>
+        <span class="stat-value">${speed}x</span>
       </div>
       <div class="stat-item">
         <span class="stat-label">Format Output</span>
@@ -1207,7 +1252,7 @@ async function handleProcessCoSu() {
         <span class="stat-value">${state.cosu.mode === 'slow_tempo' ? 'In-Phase + Tremolo' : 'L-R Inverted'}</span>
       </div>
       <div class="stat-item">
-        <span class="stat-label">Pitch Transpose</span>
+        <span class="stat-label">CoSu Pitch Transpose</span>
         <span class="stat-value">-2 Semitones</span>
       </div>
       <div class="stat-item">
@@ -1225,7 +1270,12 @@ async function handleProcessCoSu() {
     attachAudioPlayer('cosu-result', fullDownloadUrl);
 
     resultCard.classList.remove('hidden');
-    showToast('success', '🎵 Stealth seed CoSu berhasil digenerate');
+    showToast(
+      'success',
+      acousticPreset
+        ? `🎵 ${acousticPresetName} lalu CoSu selesai — satu file hasil siap diunduh`
+        : '🎵 CoSu selesai tanpa Acoustic Cloaker — satu file hasil siap diunduh'
+    );
 
   } catch (err) {
     console.error('CoSu error:', err);

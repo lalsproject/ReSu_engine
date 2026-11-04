@@ -8,6 +8,7 @@ const os = require('os');
 const { processSong, PRESETS, AUDIO_FORMATS, stripC2PAAndSunoMetadata, generatePreviewSnippet } = require('./index');
 const { sanitizeMp3File, extractCoverArtFromBuffer } = require('./c2pa-stripper');
 const cosuProcessor = require('./cosu-processor');
+const { cleanupStaleTempFiles } = require('./temp-file-cleanup');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -15,6 +16,10 @@ const PORT = process.env.PORT || 3000;
 // ── Upload Directory ──
 const UPLOAD_DIR = path.join(os.tmpdir(), 'resu_uploads');
 const OUTPUT_DIR = path.join(os.tmpdir(), 'resu_output');
+const COSU_PREVIEW_DIR = path.join(os.tmpdir(), 'resu_cosu_previews');
+const COSU_ACOUSTIC_PRESET = 'ai-shield-submithub-truezero';
+const TEMP_FILE_MAX_AGE_MS = 30 * 60 * 1000;
+const TEMP_FILE_CLEANUP_INTERVAL_MS = 5 * 60 * 1000;
 
 [UPLOAD_DIR, OUTPUT_DIR].forEach(dir => {
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
@@ -248,17 +253,35 @@ app.post('/api/cosu-export', upload.single('audio'), async (req, res) => {
     const preset = req.body.preset || 'original';
     const startTime = parseFloat(req.body.startTime || 0);
     const duration = parseFloat(req.body.duration || 60);
+    let speed;
+    try {
+      speed = cosuProcessor.normalizeSpeed(req.body.speed);
+    } catch (err) {
+      return res.status(400).json({ error: err.message });
+    }
 
     const baseName = path.basename(audioFile.originalname, path.extname(audioFile.originalname));
     const presetSuffix = preset === 'slow_tempo' ? '_SlowTempo' : (preset === 'staccato' ? '_Staccato' : '_SideHarmoni');
-    const outputFilename = `ReSu_${baseName}${presetSuffix}.mp3`;
+    const speedSuffix = speed === 1 ? '' : `_${speed}x`;
+    const acousticPreset = typeof req.body.acousticPreset === 'string'
+      ? req.body.acousticPreset || null
+      : (req.body.useAcousticCloaker === 'false' ? null : COSU_ACOUSTIC_PRESET);
+    if (acousticPreset && (!PRESETS[acousticPreset] || acousticPreset === 'custom-lab')) {
+      return res.status(400).json({ error: `Preset Acoustic Cloaker tidak dikenal: ${acousticPreset}` });
+    }
+    const acousticSuffix = acousticPreset
+      ? (acousticPreset === COSU_ACOUSTIC_PRESET ? '_TrueZero' : `_${acousticPreset}`)
+      : '';
+    const outputFilename = `ReSu_${baseName}${acousticSuffix}${presetSuffix}${speedSuffix}.mp3`;
     const outputPath = path.join(OUTPUT_DIR, `${Date.now()}_${outputFilename}`);
 
-    console.log(`[ReSu_ CoSu] Exporting: ${audioFile.originalname} | Mode: ${mode} | Preset: ${preset}`);
+    console.log(`[ReSu_ CoSu] Exporting: ${audioFile.originalname} | Acoustic: ${acousticPreset || 'skipped'} | Mode: ${mode} | Preset: ${preset} | Speed: ${speed}x`);
 
     const result = await cosuProcessor.exportStealthSeed(audioFile.path, {
       mode,
       preset,
+      acousticPreset,
+      speed,
       startTime,
       duration,
       outputPath
@@ -293,13 +316,20 @@ app.post('/api/cosu-preview', upload.single('audio'), async (req, res) => {
     const preset = req.body.preset || 'original';
     const startTime = parseFloat(req.body.startTime || 0);
     const duration = parseFloat(req.body.duration || 15);
+    let speed;
+    try {
+      speed = cosuProcessor.normalizeSpeed(req.body.speed);
+    } catch (err) {
+      return res.status(400).json({ error: err.message });
+    }
 
-    const base64Audio = await cosuProcessor.renderPreviewFilter(audioFile.path, startTime, duration, preset);
+    const base64Audio = await cosuProcessor.renderPreviewFilter(audioFile.path, startTime, duration, preset, speed);
 
     res.json({
       success: true,
       base64Audio,
       preset,
+      speed,
       duration
     });
 
@@ -368,25 +398,21 @@ app.post('/api/metadata', upload.single('audio'), async (req, res) => {
   }
 });
 
-// ── Periodic Cleanup: remove files older than 30 minutes ──
-setInterval(() => {
-  const maxAge = 30 * 60 * 1000;
-  [OUTPUT_DIR, UPLOAD_DIR].forEach(dir => {
-    try {
-      const files = fs.readdirSync(dir);
-      const now = Date.now();
-      for (const f of files) {
-        const fp = path.join(dir, f);
-        try {
-          const st = fs.statSync(fp);
-          if (now - st.mtimeMs > maxAge) {
-            fs.unlinkSync(fp);
-          }
-        } catch (_) {}
-      }
-    } catch (_) {}
+// Remove abandoned uploads, outputs, and preview renders, including after an unclean shutdown.
+const cleanupTempFiles = () => {
+  const deletedCount = cleanupStaleTempFiles({
+    directories: [UPLOAD_DIR, OUTPUT_DIR, COSU_PREVIEW_DIR],
+    tempRoot: os.tmpdir(),
+    maxAgeMs: TEMP_FILE_MAX_AGE_MS
   });
-}, 10 * 60 * 1000); // Every 10 minutes
+  if (deletedCount > 0) {
+    console.log(`[ReSu_] Removed ${deletedCount} stale temporary file(s).`);
+  }
+};
+
+cleanupTempFiles();
+const tempFileCleanupTimer = setInterval(cleanupTempFiles, TEMP_FILE_CLEANUP_INTERVAL_MS);
+tempFileCleanupTimer.unref();
 
 // ── Start Server ──
 app.listen(PORT, () => {

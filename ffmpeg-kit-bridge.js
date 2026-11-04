@@ -27,6 +27,16 @@
   const TEMPO_CORRECTION_NORMAL = 1.122462;       // 1 / 0.8908987 (restores 1.0x tempo)
   const HIGHPASS_FREQ = 250;                       // 250 Hz cutoff
   const VOLUME_BOOST = 1.6;                        // 1.6x volume compensation
+  const MIN_SPEED = 0.5;
+  const MAX_SPEED = 2;
+
+  function normalizeSpeed(speed = 1) {
+    const multiplier = Number(speed);
+    if (!Number.isFinite(multiplier) || multiplier < MIN_SPEED || multiplier > MAX_SPEED) {
+      throw new RangeError(`Speed must be between ${MIN_SPEED}x and ${MAX_SPEED}x`);
+    }
+    return multiplier;
+  }
 
   /**
    * Detect current running platform
@@ -80,7 +90,9 @@
    * @param {boolean} useRubberband Whether librubberband is supported in binary
    * @returns {string} FFmpeg -af filter string
    */
-  function getDspFilter(preset = 'original', useRubberband = true) {
+  function getDspFilter(preset = 'original', useRubberband = true, speed = 1) {
+    const speedMultiplier = normalizeSpeed(speed);
+    const speedFilter = speedMultiplier === 1 ? '' : `,atempo=${speedMultiplier}`;
     const pitchFilter = useRubberband
       ? `rubberband=pitch=${PITCH_SHIFT_MINUS_2_SEMITONES}:tempo=1.0`
       : `aformat=channel_layouts=stereo,aresample=44100,asetrate=44100*${PITCH_SHIFT_MINUS_2_SEMITONES},aresample=44100,atempo=${TEMPO_CORRECTION_NORMAL}`;
@@ -90,7 +102,7 @@
       const pitchFilter = useRubberband
         ? `rubberband=pitch=${PITCH_SHIFT_MINUS_2_SEMITONES}:tempo=1.05`
         : `aformat=channel_layouts=stereo,aresample=44100,asetrate=44100*${PITCH_SHIFT_MINUS_2_SEMITONES},aresample=44100,atempo=1.178585`;
-      return `pan=stereo|c0=c0-c1|c1=c0-c1,highpass=f=160,bass=g=3.0:f=180,equalizer=f=1800:t=q:w=1.2:g=-11,tremolo=f=5.5:d=0.88,${pitchFilter},volume=2.2`;
+      return `pan=stereo|c0=c0-c1|c1=c0-c1,highpass=f=160,bass=g=3.0:f=180,equalizer=f=1800:t=q:w=1.2:g=-11,tremolo=f=5.5:d=0.88,${pitchFilter},volume=2.2${speedFilter}`;
     }
 
     if (preset === 'staccato') {
@@ -98,12 +110,12 @@
       // Pulse ON (1.4s): cancel factor 0.78 (leaving ~22% faint ghost vocal for Suno pitch/melody tracker)
       // Pulse OFF (1.6s): cancel factor 1.0 (100% hard kill to break Audible Magic continuous fingerprint)
       // Highpass 250Hz + Pitch Shift -2 Semitones + Volume 1.6x
-      return `aeval=exprs='val(0)-if(lt(mod(t\\,3.0)\\,1.35)\\,0.78\\,if(lt(mod(t\\,3.0)\\,1.40)\\,0.78+0.22*(mod(t\\,3.0)-1.35)/0.05\\,if(gt(mod(t\\,3.0)\\,2.95)\\,1.0-0.22*(mod(t\\,3.0)-2.95)/0.05\\,1.0)))*val(1)|val(1)-if(lt(mod(t\\,3.0)\\,1.35)\\,0.78\\,if(lt(mod(t\\,3.0)\\,1.40)\\,0.78+0.22*(mod(t\\,3.0)-1.35)/0.05\\,if(gt(mod(t\\,3.0)\\,2.95)\\,1.0-0.22*(mod(t\\,3.0)-2.95)/0.05\\,1.0)))*val(0)':c=stereo,highpass=f=${HIGHPASS_FREQ},${pitchFilter},volume=${VOLUME_BOOST}`;
+      return `aeval=exprs='val(0)-if(lt(mod(t\\,3.0)\\,1.35)\\,0.78\\,if(lt(mod(t\\,3.0)\\,1.40)\\,0.78+0.22*(mod(t\\,3.0)-1.35)/0.05\\,if(gt(mod(t\\,3.0)\\,2.95)\\,1.0-0.22*(mod(t\\,3.0)-2.95)/0.05\\,1.0)))*val(1)|val(1)-if(lt(mod(t\\,3.0)\\,1.35)\\,0.78\\,if(lt(mod(t\\,3.0)\\,1.40)\\,0.78+0.22*(mod(t\\,3.0)-1.35)/0.05\\,if(gt(mod(t\\,3.0)\\,2.95)\\,1.0-0.22*(mod(t\\,3.0)-2.95)/0.05\\,1.0)))*val(0)':c=stereo,highpass=f=${HIGHPASS_FREQ},${pitchFilter},volume=${VOLUME_BOOST}${speedFilter}`;
     }
 
     // 🛡️ Original Pure Side-Harmoni (Default v1.80.0)
     // 100% center vocal & bass cancellation via L-R phase inversion + Highpass 250Hz + Pitch -2 Semitones + Volume 1.6x
-    return `pan=stereo|c0=c0-c1|c1=c1-c0,highpass=f=${HIGHPASS_FREQ},${pitchFilter},volume=${VOLUME_BOOST}`;
+    return `pan=stereo|c0=c0-c1|c1=c1-c0,highpass=f=${HIGHPASS_FREQ},${pitchFilter},volume=${VOLUME_BOOST}${speedFilter}`;
   }
 
   /**
@@ -115,16 +127,20 @@
     const duration = parseFloat(options.duration || 60.00);
     const preset = options.preset || 'original';
     const useRubberband = options.useRubberband !== false;
+    const speed = normalizeSpeed(options.speed);
     const bitrate = options.bitrate || '320k';
 
     const args = ['-y'];
     if (!isFull) {
       args.push('-ss', startTime.toFixed(3), '-t', duration.toFixed(3));
     }
+    args.push('-i', inputPath, '-vn');
+    if (options.filterGraph) {
+      args.push('-filter_complex', options.filterGraph, '-map', '[cosu_output]');
+    } else {
+      args.push('-af', getDspFilter(preset, useRubberband, speed));
+    }
     args.push(
-      '-i', inputPath,
-      '-vn',
-      '-af', getDspFilter(preset, useRubberband),
       '-map_metadata', '-1',
       '-c:a', 'libmp3lame',
       '-b:a', bitrate,
@@ -216,6 +232,7 @@
     detectPlatform,
     isFFmpegKitAvailable,
     getDspFilter,
+    normalizeSpeed,
     buildArgs,
     buildCommandString,
     executeOnAndroidFFmpegKit,
